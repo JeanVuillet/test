@@ -1,6 +1,5 @@
 'use client'
-
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 interface FlickrPhoto {
   id: string;
@@ -15,36 +14,74 @@ interface FlickrPhoto {
   // ... d'autres propriétés si nécessaire
 }
 
-function FlickrPhotos() {
+interface FlickrAlbum {
+  id: string;
+  owner: string;
+  username: string;
+  primary: string;
+  secret: string;
+  server: string;
+  farm: number;
+  // ... d'autres propriétés si nécessaire
+}
+
+const FlickrPhotosByTitle = () => {
   const [photos, setPhotos] = useState<FlickrPhoto[]>([]);
+  const [albums, setAlbums] = useState<FlickrAlbum[]>([]);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const apiKey = 'c9f10f419c7ee17812798af5c75a7705'; // Remplacez par votre clé API Flickr
-      const albumId = '72177720318950674'; // ID de l'album extrait de l'URL
+    const apiKey = 'c9f10f419c7ee17812798af5c75a7705'; // Remplacez par votre clé API Flickr
+    const userId = '201028164@N07'; // Remplacez par l'ID utilisateur Flickr
 
+    const fetchAlbums = async () => {
       try {
         const response = await fetch(
-          `https://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${albumId}&format=json&nojsoncallback=1`
+          `https://api.flickr.com/services/rest/?method=flickr.photosets.getList&api_key=${apiKey}&user_id=${userId}&format=json&nojsoncallback=1`
         );
         const data = await response.json();
-        if(data){
-          console.log('photos there')
-        }else{
-          console.log('no photos')
-        }
-        setPhotos(data.photoset.photo); // Utilisez la propriété 'photo' de la réponse
+        setAlbums(data.photosets.photoset);
       } catch (error) {
-        console.error("Erreur lors de la récupération des photos:", error);
+        console.error('Erreur lors de la récupération des albums:', error);
       }
     };
 
-    fetchData(); 
+    const fetchPhotos = async () => {
+      if (selectedAlbumId) {
+        try {
+          const response = await fetch(
+            `https://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${selectedAlbumId}&format=json&nojsoncallback=1`
+          );
+          const data = await response.json();
+          setPhotos(data.photoset.photo);
+        } catch (error) {
+          console.error('Erreur lors de la récupération des photos:', error);
+        }
+      }
+    };
+
+    fetchAlbums();
   }, []); 
+
+  const handleAlbumSelect = (albumId: string) => {
+    setSelectedAlbumId(albumId);
+    fetchPhotos();
+  };
 
   return (
     <div>
       <h2>Photos Flickr</h2>
+      <ul>
+        {albums.map((album) => (
+          <li key={album.id}>
+            <button onClick={() => handleAlbumSelect(album.id)}>
+              {album.title._content}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <h3>Photos de l'album:</h3>
       <ul>
         {photos.map((photo) => (
           <li key={photo.id}>
@@ -62,7 +99,8 @@ function FlickrPhotos() {
         ))}
       </ul>
     </div>
+    // il faut utiliser GETLIST
   );
-}
+};
 
-export default FlickrPhotos;
+export default FlickrPhotosByTitle;
